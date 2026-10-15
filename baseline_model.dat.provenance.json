@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-13T07:10:53Z",
+  "model_file": "baseline_model.dat",
+  "model_sha256": "13b5b286d8e0248f7ebb0131fe14d146e482d1c938c295e39d16d2e56da3dc4b",
+  "model_file_bytes": 238616,
+  "model_format_magic": "0x5041444D",
+  "model_format_version": 1,
+  "ngram_size": 3,
+  "unique_ngrams": 7456,
+  "total_training_ngrams": 1456768,
+  "training_dataset_path": "/tmp/live_syscall_dataset.csv",
+  "training_dataset_sha256": "da11dedc965622dbb08409842384b51fc8e66554bb52e4fbeb783ebaa4a92b26",
+  "training_method": "syscall-3gram-frequency-count",
+  "label_filter": "all-rows",
+  "disclaimer": "Training labels are detector-generated predictions, not independently verified ground truth. Provenance fields marked null were not supplied at generation time."
+}

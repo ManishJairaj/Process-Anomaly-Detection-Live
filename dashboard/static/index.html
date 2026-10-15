@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eBPF Process Anomaly Detection — Live Cybersecurity Monitoring</title>
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-shield">🛡️</div>
+      <div>
+        <div class="sidebar-title">SyscallGuard</div>
+        <div class="sidebar-subtitle">eBPF 3-GRAM ENGINE</div>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <a href="#overview" class="nav-link active" data-target="section-overview">
+          <span>📊</span>
+          <span class="nav-text">Overview</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#events" class="nav-link" data-target="section-events">
+          <span>⚡</span>
+          <span class="nav-text">Live Events</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#alerts" class="nav-link" data-target="section-alerts">
+          <span>🚨</span>
+          <span class="nav-text">Anomaly Alerts</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#visualizations" class="nav-link" data-target="section-charts">
+          <span>📈</span>
+          <span class="nav-text">Visualizations</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#terminal" class="nav-link" data-target="section-terminal">
+          <span>🖥️</span>
+          <span class="nav-text">Detector Controls</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div>Host: Linux x86_64</div>
+      <div>Model: 3-Gram Frequency</div>
+      <div>Threshold: 0.80</div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="status-badge" id="detectorStatusBadge">
+          <span class="pulse-dot pulse-gray" id="detectorPulse"></span>
+          <span id="detectorStatusText">Checking detector status...</span>
+        </div>
+      </div>
+
+      <div class="dataset-select-wrap">
+        <span style="color: var(--text-secondary);">Active Dataset:</span>
+        <select class="dataset-picker" id="datasetPicker">
+          <option value="gt_eval_dataset.csv">gt_eval_dataset.csv (Ground-Truth 13 Workloads)</option>
+          <option value="syscall_dataset.csv">syscall_dataset.csv (Live eBPF Log)</option>
+          <option value="syscall_dataset_prev.csv">syscall_dataset_prev.csv (Historical Log)</option>
+        </select>
+        <button class="btn" id="btnRefresh" title="Force Refresh">🔄</button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="content-container">
+
+      <!-- Section: Overview Stats -->
+      <section id="section-overview">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total 3-Grams</div>
+            <div class="stat-value" id="valTotalEvents">0</div>
+            <div class="stat-sub">Processed transitions</div>
+          </div>
+          <div class="stat-card alert-card">
+            <div class="stat-label">Anomaly Alerts</div>
+            <div class="stat-value" id="valAlerts">0</div>
+            <div class="stat-sub">Score &ge; 0.80 (Unseen/Deviant)</div>
+          </div>
+          <div class="stat-card normal-card">
+            <div class="stat-label">Normal Events</div>
+            <div class="stat-value" id="valNormal">0</div>
+            <div class="stat-sub">Verified benign patterns</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Monitored PIDs</div>
+            <div class="stat-value" id="valPids">0</div>
+            <div class="stat-sub">Distinct active processes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Anomaly Rate</div>
+            <div class="stat-value" id="valAnomalyPct">0.0%</div>
+            <div class="stat-sub">Alert frequency ratio</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Visualizations -->
+      <section id="section-charts" class="charts-grid">
+        <!-- Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span>Normal vs Suspicious Distribution</span>
+            <span class="panel-badge" id="chartDistRatio">0% Anomalies</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="canvasDistribution"></canvas>
+          </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span>Anomaly Activity Over Time</span>
+            <span class="panel-badge">Live Rate (Events/Sec)</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="canvasTimeline"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Processes -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span>Top Anomaly-Generating Processes</span>
+            <span class="panel-badge">Alert Frequency</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="canvasTopProcs"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Live Events Stream Table -->
+      <section id="section-events" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚡ Live System Call Event Stream</span>
+            <span class="panel-badge" id="liveEventCount">0 events</span>
+          </div>
+
+          <div class="filter-bar">
+            <input type="text" class="filter-input" id="filterProcess" placeholder="Filter by Process..." style="width: 150px;">
+            <input type="text" class="filter-input" id="filterPid" placeholder="PID..." style="width: 90px;">
+            <label class="filter-toggle">
+              <input type="checkbox" id="toggleSuspiciousOnly">
+              <span>Alerts Only</span>
+            </label>
+            <button class="btn" id="btnExport">📥 Export CSV</button>
+            <button class="btn" id="btnTogglePause">⏸️ Pause</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Time</th>
+                <th style="width: 80px;">PID</th>
+                <th style="width: 140px;">Process</th>
+                <th>Syscall Sequence (3-Gram)</th>
+                <th style="width: 110px;">Score</th>
+                <th style="width: 110px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                  Listening for syscall events from active dataset...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Dedicated Anomaly Alerts Feed -->
+      <section id="section-alerts" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🚨 Real-Time Anomaly Alerts & Root Cause Explanations</span>
+            <span class="panel-badge" id="alertCountBadge">0 alerts</span>
+          </div>
+          <div>
+            <span style="font-size: 12px; color: var(--text-muted);">Threshold: score &ge; 0.80</span>
+          </div>
+        </div>
+
+        <div class="alert-feed" id="alertFeedContainer">
+          <div style="text-align: center; color: var(--text-muted); padding: 30px;">
+            No anomaly alerts recorded in active stream.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Safe Monitoring & Terminal Controls -->
+      <section id="section-terminal" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🖥️ Detector Controls & Launch Instructions</span>
+          </div>
+          <div>
+            <span class="panel-badge" style="color: var(--normal-green);">Privilege Separation Protected</span>
+          </div>
+        </div>
+
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            Because kernel eBPF tracepoints require <code style="color: var(--accent-cyan);">CAP_BPF</code> or administrator privileges, the web server runs safely unprivileged and connects directly to the detector's incremental log output. To start or control monitoring, execute the commands below in your host terminal:
+          </p>
+
+          <div class="terminal-box">
+            <div style="color: var(--text-muted); font-size: 11px;"># Option 1: Launch Live eBPF Kernel Collector (Requires sudo in Ubuntu terminal)</div>
+            <div class="command-row">
+              <span class="command-code" id="cmd1">sudo ./ebpf/syscall-detector-live -m baseline_model.dat -o syscall_dataset.csv -q</span>
+              <button class="copy-btn" onclick="copyCommand('cmd1')">📋 Copy</button>
+            </div>
+
+            <div style="color: var(--text-muted); font-size: 11px; margin-top: 14px;"># Option 2: Run Safe Unprivileged Ground-Truth Workload Suite (No sudo required)</div>
+            <div class="command-row">
+              <span class="command-code" id="cmd2">./tools/workload_runner.sh --model baseline_model.dat --output gt_eval_dataset.csv</span>
+              <button class="copy-btn" onclick="copyCommand('cmd2')">📋 Copy</button>
+            </div>
+
+            <div style="color: var(--text-muted); font-size: 11px; margin-top: 14px;"># Option 3: Stop Active Detector Instance</div>
+            <div class="command-row">
+              <span class="command-code" id="cmd3">sudo pkill -SIGINT -f syscall-detector-live</span>
+              <button class="copy-btn" onclick="copyCommand('cmd3')">📋 Copy</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

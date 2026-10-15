@@ -1,0 +1,25 @@
+
+# Large generated datasets
+baseline_syscalls.csv
+syscall_dataset.csv
+fresh_syscall_dataset.csv
+__pycache__/
+*.pyc
+
+.vscode/
+.idea/
+
+*.log
+*.csv
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+*.o
+*.tmp
+
+.env
+.venv/
+
+data/
