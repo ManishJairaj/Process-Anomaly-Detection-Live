@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "experiment_type": "ground_truth_evaluation",
+  "generated_at": "2026-10-15T10:42:34Z",
+  "host_arch": "x86_64",
+  "kernel_version": "6.17.0-1017-oem",
+  "hostname": "sandbox",
+  "model_file": "baseline_model.dat",
+  "dataset_file": "gt_eval_dataset.csv",
+  "timestamp_type": "monotonic_ns",
+  "timestamp_note": "All timestamps use CLOCK_MONOTONIC in nanoseconds. eBPF events use the same clock.",
+  "workloads": [
+    {
+      "workload_id": "B1_file_read",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 117,
+      "start_timestamp_ns": 189929702866611,
+      "end_timestamp_ns": 189929809228067,
+      "description": "Read system files (/etc/hostname, /etc/os-release)",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B2_file_write",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 139,
+      "start_timestamp_ns": 189930832479753,
+      "end_timestamp_ns": 189930939612946,
+      "description": "Write and append to files in workspace",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B3_dir_traverse",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 159,
+      "start_timestamp_ns": 189931962615844,
+      "end_timestamp_ns": 189932174988694,
+      "description": "Recursive directory listing of /usr/share/doc",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B4_compression",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 180,
+      "start_timestamp_ns": 189933199420399,
+      "end_timestamp_ns": 189933336729954,
+      "description": "Create and compress files with gzip",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B5_compile",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 202,
+      "start_timestamp_ns": 189934359514758,
+      "end_timestamp_ns": 189934621556928,
+      "description": "Compile a small C program",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B6_process_exec",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 227,
+      "start_timestamp_ns": 189935643437033,
+      "end_timestamp_ns": 189935769462598,
+      "description": "Normal process creation (ls, uname, date, id)",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B7_file_copy",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 251,
+      "start_timestamp_ns": 189936792064763,
+      "end_timestamp_ns": 189936897338815,
+      "description": "Copy and rename files in workspace",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "B8_proc_info",
+      "workload_type": "benign",
+      "ground_truth_label": "benign",
+      "pid": 271,
+      "start_timestamp_ns": 189937919665126,
+      "end_timestamp_ns": 189938030694859,
+      "description": "Read process information from /proc",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "S1_failed_access",
+      "workload_type": "security_relevant",
+      "ground_truth_label": "suspicious",
+      "pid": 293,
+      "start_timestamp_ns": 189939054747012,
+      "end_timestamp_ns": 189939754227902,
+      "description": "Repeated attempts to read nonexistent/inaccessible files",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "S2_protected_files",
+      "workload_type": "security_relevant",
+      "ground_truth_label": "suspicious",
+      "pid": 413,
+      "start_timestamp_ns": 189940778049247,
+      "end_timestamp_ns": 189941043031904,
+      "description": "Attempt to access protected system files without permission",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "S3_rapid_fork",
+      "workload_type": "security_relevant",
+      "ground_truth_label": "suspicious",
+      "pid": 461,
+      "start_timestamp_ns": 189942067640380,
+      "end_timestamp_ns": 189942191358365,
+      "description": "Rapid sequential process creation (safe, bounded)",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "S4_rapid_modify",
+      "workload_type": "security_relevant",
+      "ground_truth_label": "suspicious",
+      "pid": 511,
+      "start_timestamp_ns": 189943214859314,
+      "end_timestamp_ns": 189943627230235,
+      "description": "Rapid file creation/modification/deletion in workspace",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+    ,
+    {
+      "workload_id": "S5_enumeration",
+      "workload_type": "security_relevant",
+      "ground_truth_label": "suspicious",
+      "pid": 583,
+      "start_timestamp_ns": 189944652757234,
+      "end_timestamp_ns": 189944802414717,
+      "description": "System enumeration patterns (reading multiple /proc and /sys entries)",
+      "dataset_filename": "gt_eval_dataset.csv",
+      "host_arch": "x86_64",
+      "kernel_version": "6.17.0-1017-oem"
+    }
+  ]
+}

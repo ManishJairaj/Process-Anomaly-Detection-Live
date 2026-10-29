@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eBPF Process Anomaly Detection — Live Cybersecurity Monitoring</title>
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-shield">🛡️</div>
+      <div>
+        <div class="sidebar-title">SyscallGuard</div>
+        <div class="sidebar-subtitle">eBPF 3-GRAM ENGINE</div>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <a href="#overview" class="nav-link active" data-target="section-overview">
+          <span>📊</span>
+          <span class="nav-text">Overview</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#events" class="nav-link" data-target="section-events">
+          <span>⚡</span>
+          <span class="nav-text">Live Events</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#alerts" class="nav-link" data-target="section-alerts">
+          <span>🚨</span>
+          <span class="nav-text">Anomaly Alerts</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#alert-history" class="nav-link" data-target="section-alert-history">
+          <span>📜</span>
+          <span class="nav-text">Alert History</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#processes" class="nav-link" data-target="section-processes">
+          <span>⚙️</span>
+          <span class="nav-text">Processes</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#visualizations" class="nav-link" data-target="section-charts">
+          <span>📈</span>
+          <span class="nav-text">Visualizations</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#terminal" class="nav-link" data-target="section-terminal">
+          <span>🖥️</span>
+          <span class="nav-text">Detector Controls</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div>Host: Linux x86_64</div>
+      <div>Model: 3-Gram Frequency</div>
+      <div>Threshold: 0.80</div>
+      <div>Storage: SQLite Persistent</div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="status-badge" id="detectorStatusBadge">
+          <span class="pulse-dot pulse-gray" id="detectorPulse"></span>
+          <span id="detectorStatusText">Checking detector status...</span>
+        </div>
+      </div>
+
+      <div class="dataset-select-wrap">
+        <span style="color: var(--text-secondary);">Active Dataset:</span>
+        <select class="dataset-picker" id="datasetPicker">
+          <option value="gt_eval_dataset.csv">gt_eval_dataset.csv (Ground-Truth 13 Workloads)</option>
+          <option value="syscall_dataset.csv">syscall_dataset.csv (Live eBPF Log)</option>
+          <option value="syscall_dataset_prev.csv">syscall_dataset_prev.csv (Historical Log)</option>
+        </select>
+        <button class="btn" id="btnRefresh" title="Force Refresh">🔄</button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="content-container">
+
+      <!-- Section: Overview Stats (Live Anomaly Detection Metrics) -->
+      <section id="section-overview">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total 3-Grams</div>
+            <div class="stat-value" id="valTotalEvents">0</div>
+            <div class="stat-sub">Processed transitions</div>
+          </div>
+          <div class="stat-card alert-card">
+            <div class="stat-label">Anomaly Alerts</div>
+            <div class="stat-value" id="valAlerts">0</div>
+            <div class="stat-sub">Score &ge; 0.80 (Unseen/Deviant)</div>
+          </div>
+          <div class="stat-card normal-card">
+            <div class="stat-label">Normal Events</div>
+            <div class="stat-value" id="valNormal">0</div>
+            <div class="stat-sub">Verified benign patterns</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Monitored PIDs</div>
+            <div class="stat-value" id="valPids">0</div>
+            <div class="stat-sub">Distinct active processes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Anomaly Rate</div>
+            <div class="stat-value" id="valAnomalyPct">0.0%</div>
+            <div class="stat-sub">Alert frequency ratio</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Visualizations -->
+      <section id="section-charts" class="charts-grid">
+        <!-- Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span>Normal vs Suspicious Distribution</span>
+            <span class="panel-badge" id="chartDistRatio">0% Anomalies</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="canvasDistribution"></canvas>
+          </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span>Anomaly Activity Over Time</span>
+            <span class="panel-badge">Live Rate (Events/Sec)</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="canvasTimeline"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Processes -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span>Top Anomaly-Generating Processes</span>
+            <span class="panel-badge">Alert Frequency</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="canvasTopProcs"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Live Events Stream Table -->
+      <section id="section-events" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚡ Live System Call Event Stream</span>
+            <span class="panel-badge" id="liveEventCount">0 events</span>
+          </div>
+
+          <div class="filter-bar">
+            <input type="text" class="filter-input" id="filterProcess" placeholder="Filter by Process..." style="width: 150px;">
+            <input type="text" class="filter-input" id="filterPid" placeholder="PID..." style="width: 90px;">
+            <label class="filter-toggle">
+              <input type="checkbox" id="toggleSuspiciousOnly">
+              <span>Alerts Only</span>
+            </label>
+            <button class="btn" id="btnExport">📥 Export CSV</button>
+            <button class="btn" id="btnTogglePause">⏸️ Pause</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Time</th>
+                <th style="width: 80px;">PID</th>
+                <th style="width: 140px;">Process</th>
+                <th>Syscall Sequence (3-Gram)</th>
+                <th style="width: 110px;">Score</th>
+                <th style="width: 110px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                  Listening for syscall events from active dataset...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Dedicated Live Anomaly Alerts Feed -->
+      <section id="section-alerts" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🚨 Real-Time Anomaly Alerts & Root Cause Explanations</span>
+            <span class="panel-badge" id="alertCountBadge">0 alerts</span>
+          </div>
+          <div>
+            <span style="font-size: 12px; color: var(--text-muted);">Threshold: score &ge; 0.80</span>
+          </div>
+        </div>
+
+        <div class="alert-feed" id="alertFeedContainer">
+          <div style="text-align: center; color: var(--text-muted); padding: 30px;">
+            No anomaly alerts recorded in active stream.
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 20 & 22: Persistent Alert History, Incident Management & Security Triage -->
+      <section id="section-alert-history" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📜 Alert History & Security Triage</span>
+            <span class="panel-badge" id="histAlertCountBadge">0 stored alerts</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" id="btnHistRefresh" title="Refresh Alert History">🔄 Refresh</button>
+            <button class="btn" id="btnHistExport" title="Export Filtered History as CSV">📥 Export CSV</button>
+          </div>
+        </div>
+
+        <!-- STAGE 22: Security Triage Threat Prioritization Section (Task 9) -->
+        <div class="triage-panel" style="padding: 16px 20px 0 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.5px;">🎯 SECURITY TRIAGE SUMMARY</span>
+            <span class="panel-badge" id="triageUnresolvedBadge" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); font-weight: 700;">
+              0 UNRESOLVED HIGH-PRIORITY
+            </span>
+          </div>
+          <div class="history-stats-grid" style="padding: 0; margin-bottom: 16px;">
+            <div class="stat-card" style="border-left: 3px solid #b91c1c;">
+              <div class="stat-label">CRITICAL Alerts</div>
+              <div class="stat-value" id="valTriageCritical" style="color: #f87171;">0</div>
+              <div class="stat-sub">Immediate action required</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #ea580c;">
+              <div class="stat-label">HIGH Alerts</div>
+              <div class="stat-value" id="valTriageHigh" style="color: #fb923c;">0</div>
+              <div class="stat-sub">Execution / tracing / network</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #d97706;">
+              <div class="stat-label">MEDIUM Alerts</div>
+              <div class="stat-value" id="valTriageMedium" style="color: #fbbf24;">0</div>
+              <div class="stat-sub">Unseen sequences / FS mutation</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #0284c7;">
+              <div class="stat-label">LOW Alerts</div>
+              <div class="stat-value" id="valTriageLow" style="color: #38bdf8;">0</div>
+              <div class="stat-sub">Routine I/O deviation</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #ef4444;">
+              <div class="stat-label">Top Flagged Processes</div>
+              <div class="stat-sub" id="triageTopProcessesList" style="margin-top: 4px; font-size: 12px; color: var(--text-primary); font-family: var(--font-mono); line-height: 1.4;">
+                No unresolved high-priority alerts.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incident Management Statistics Cards -->
+        <div class="history-stats-grid">
+          <div class="stat-card" style="border-left: 3px solid var(--accent-cyan);">
+            <div class="stat-label">Total Stored Alerts</div>
+            <div class="stat-value" id="valHistTotal">0</div>
+            <div class="stat-sub">Persisted in SQLite</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid #f59e0b;">
+            <div class="stat-label">New Alerts</div>
+            <div class="stat-value" id="valHistNew" style="color: #f59e0b;">0</div>
+            <div class="stat-sub">Pending triage</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid #38bdf8;">
+            <div class="stat-label">Investigating</div>
+            <div class="stat-value" id="valHistInvestigating" style="color: #38bdf8;">0</div>
+            <div class="stat-sub">Active analysis</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid #10b981;">
+            <div class="stat-label">Resolved</div>
+            <div class="stat-value" id="valHistResolved" style="color: #10b981;">0</div>
+            <div class="stat-sub">Closed incidents</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid #a78bfa;">
+            <div class="stat-label">False Alarms</div>
+            <div class="stat-value" id="valHistFalseAlarm" style="color: #a78bfa;">0</div>
+            <div class="stat-sub">Benign deviations</div>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-bar history-filter-bar">
+          <input type="text" class="filter-input" id="histFilterProcess" placeholder="Search Process Name..." style="width: 160px;">
+          <input type="number" class="filter-input" id="histFilterPid" placeholder="PID..." style="width: 75px;">
+
+          <select class="filter-select" id="histFilterSeverity" title="Filter by alert severity">
+            <option value="">All Severities</option>
+            <option value="CRITICAL">Severity: CRITICAL</option>
+            <option value="HIGH">Severity: HIGH</option>
+            <option value="MEDIUM">Severity: MEDIUM</option>
+            <option value="LOW">Severity: LOW</option>
+          </select>
+          
+          <select class="filter-select" id="histFilterStatus" title="Filter by incident status">
+            <option value="">All Statuses</option>
+            <option value="NEW">Status: NEW</option>
+            <option value="INVESTIGATING">Status: INVESTIGATING</option>
+            <option value="RESOLVED">Status: RESOLVED</option>
+            <option value="FALSE_ALARM">Status: FALSE ALARM</option>
+          </select>
+
+          <select class="filter-select" id="histFilterScore" title="Filter by anomaly score">
+            <option value="">All Scores (&ge; 0.80)</option>
+            <option value="0.90">Score &ge; 0.90</option>
+            <option value="1.00">Score = 1.0000 (Unseen)</option>
+          </select>
+
+          <input type="text" class="filter-input" id="histFilterStartTime" placeholder="From (Time/Date)" style="width: 125px;" title="Filter start timestamp or date prefix">
+          <input type="text" class="filter-input" id="histFilterEndTime" placeholder="To (Time/Date)" style="width: 125px;" title="Filter end timestamp or date prefix">
+
+          <select class="filter-select" id="histSortOrder" title="Sorting order">
+            <option value="desc">Newest First</option>
+            <option value="asc">Oldest First</option>
+            <option value="severity">Sort by: Severity</option>
+            <option value="score">Highest Score</option>
+          </select>
+
+          <select class="filter-select" id="histPageSize" style="width: 85px;" title="Rows per page">
+            <option value="10">10 / page</option>
+            <option value="25" selected>25 / page</option>
+            <option value="50">50 / page</option>
+            <option value="100">100 / page</option>
+          </select>
+
+          <button class="btn" id="btnHistResetFilters" title="Reset all filters">Reset</button>
+        </div>
+
+        <!-- Alert History Table -->
+        <div class="table-responsive">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th style="width: 65px;">ID</th>
+                <th style="width: 145px;">Timestamp</th>
+                <th style="width: 70px;">PID</th>
+                <th style="width: 120px;">Process</th>
+                <th style="width: 105px;">Severity</th>
+                <th>Syscall Sequence (3-Gram)</th>
+                <th style="width: 85px;">Score</th>
+                <th style="width: 115px;">Status</th>
+                <th>Explanation & Rule</th>
+                <th style="width: 85px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="histTableBody">
+              <tr>
+                <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                  Loading persistent alert history from SQLite...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Server-Side Pagination Bar -->
+        <div class="pagination-bar">
+          <div class="pagination-info" id="histPaginationInfo">
+            Showing 0 - 0 of 0 alerts
+          </div>
+          <div class="pagination-controls">
+            <button class="page-btn" id="btnHistFirst" title="First page">&laquo; First</button>
+            <button class="page-btn" id="btnHistPrev" title="Previous page">&lsaquo; Prev</button>
+            <span class="pagination-current" id="histPageCurrent">Page 1 of 1</span>
+            <button class="page-btn" id="btnHistNext" title="Next page">Next &rsaquo;</button>
+            <button class="page-btn" id="btnHistLast" title="Last page">Last &raquo;</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 21: Process-Wise Monitoring & Behavioral Analytics Section -->
+      <section id="section-processes" class="panel">
+        <!-- View 1: Process Overview List -->
+        <div id="processesListView">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>⚙️ Process-Wise Behavioral Monitoring</span>
+              <span class="panel-badge" id="processesCountBadge">0 processes</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" id="btnRefreshProcesses" title="Refresh Process List">🔄 Refresh</button>
+            </div>
+          </div>
+
+          <!-- Process Filter Bar -->
+          <div class="filter-bar history-filter-bar">
+            <input type="text" class="filter-input" id="procFilterName" placeholder="Search Process Name..." style="width: 180px;">
+            <input type="number" class="filter-input" id="procFilterPid" placeholder="PID..." style="width: 85px;">
+
+            <select class="filter-select" id="procSortBy" title="Sort processes by attribute">
+              <option value="total" selected>Sort by: Total 3-Grams</option>
+              <option value="anomalies">Sort by: Anomaly Count</option>
+              <option value="anomaly_pct">Sort by: Anomaly %</option>
+              <option value="latest">Sort by: Latest Activity</option>
+            </select>
+
+            <select class="filter-select" id="procSortOrder" title="Sort direction">
+              <option value="desc" selected>Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+
+            <select class="filter-select" id="procPageSize" style="width: 85px;" title="Processes per page">
+              <option value="10">10 / page</option>
+              <option value="25" selected>25 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+            </select>
+
+            <button class="btn" id="btnProcResetFilters" title="Reset all process filters">Reset</button>
+          </div>
+
+          <!-- Processes Table -->
+          <div class="table-responsive">
+            <table class="event-table">
+              <thead>
+                <tr>
+                  <th style="width: 75px;">PID</th>
+                  <th style="width: 150px;">Process Name</th>
+                  <th style="width: 110px;">Status</th>
+                  <th style="width: 120px;">Total 3-Grams</th>
+                  <th style="width: 110px;">Normal</th>
+                  <th style="width: 110px;">Anomalies</th>
+                  <th style="width: 110px;">Anomaly Rate</th>
+                  <th style="width: 155px;">Last Observed</th>
+                  <th style="width: 110px; text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="processesTableBody">
+                <tr>
+                  <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                    Loading processes from database...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Process Pagination Bar -->
+          <div class="pagination-bar">
+            <div class="pagination-info" id="procPaginationInfo">
+              Showing 0 - 0 of 0 processes
+            </div>
+            <div class="pagination-controls">
+              <button class="page-btn" id="btnProcFirst" title="First page">&laquo; First</button>
+              <button class="page-btn" id="btnProcPrev" title="Previous page">&lsaquo; Prev</button>
+              <span class="pagination-current" id="procPageCurrent">Page 1 of 1</span>
+              <button class="page-btn" id="btnProcNext" title="Next page">Next &rsaquo;</button>
+              <button class="page-btn" id="btnProcLast" title="Last page">Last &raquo;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Process Details View (Task 3 & 4) -->
+        <div id="processDetailView" class="view-hidden">
+          <div class="proc-detail-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button class="btn" id="btnBackToProcList" title="Back to Processes List">← Back</button>
+              <span style="font-size: 16px; font-weight: 700;" id="procDetailTitle">Process Details</span>
+              <span class="badge-status status-active" id="procDetailStatusBadge">ACTIVE</span>
+            </div>
+            <div>
+              <button class="btn" id="btnViewProcAlerts" style="border-color: var(--anomaly-red); color: #fca5a5;">
+                🚨 View Alerts in History
+              </button>
+            </div>
+          </div>
+
+          <!-- Process Key Metrics Cards Grid -->
+          <div class="proc-meta-grid">
+            <div class="stat-card" style="border-left: 3px solid var(--accent-cyan);">
+              <div class="stat-label">Total 3-Grams</div>
+              <div class="stat-value" id="detailValTotal">0</div>
+              <div class="stat-sub">Observed sequences</div>
+            </div>
+            <div class="stat-card normal-card">
+              <div class="stat-label">Normal Events</div>
+              <div class="stat-value" id="detailValNormal">0</div>
+              <div class="stat-sub">Benign transitions</div>
+            </div>
+            <div class="stat-card alert-card">
+              <div class="stat-label">Anomaly Alerts</div>
+              <div class="stat-value" id="detailValSuspicious">0</div>
+              <div class="stat-sub">Score &ge; 0.80</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #f59e0b;">
+              <div class="stat-label">Anomaly Rate</div>
+              <div class="stat-value" id="detailValRate">0.0%</div>
+              <div class="stat-sub">Deviation percentage</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">First Observed</div>
+              <div class="stat-value" id="detailValFirstTs" style="font-size: 13px; font-family: var(--font-mono);">-</div>
+              <div class="stat-sub">Monotonic ns timestamp</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Last Observed</div>
+              <div class="stat-value" id="detailValLastTs" style="font-size: 13px; font-family: var(--font-mono);">-</div>
+              <div class="stat-sub">Latest event timestamp</div>
+            </div>
+          </div>
+
+          <!-- Process Behavior Visualizations (Task 4) -->
+          <div class="proc-charts-grid">
+            <!-- Chart A: Process Activity Timeline -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <span>Process Activity Timeline</span>
+                <span class="panel-badge">3-Gram Activity Over Time</span>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="canvasProcTimeline"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart B: Normal vs Suspicious Distribution -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <span>Normal vs Suspicious Distribution</span>
+                <span class="panel-badge" id="procChartDistRatio">0% Anomalies</span>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="canvasProcDist"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart C: Most Frequent Syscall Sequences -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <span>Top Frequent Syscall 3-Grams</span>
+                <span class="panel-badge">Behavioral Profile</span>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="canvasProcTopNgrams"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart D: Process Anomaly Timeline -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <span>Process Anomaly Timeline</span>
+                <span class="panel-badge" style="color: var(--anomaly-red);">Alert Rate</span>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="canvasProcAnomalyTimeline"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Data Split: Syscalls & Anomaly Feed (Task 3 & 4) -->
+          <div class="proc-split-grid">
+            <!-- Left: Recent Syscall Sequences -->
+            <div class="chart-card" style="padding: 0; overflow: hidden;">
+              <div class="panel-header" style="padding: 12px 16px;">
+                <div class="panel-title">
+                  <span>⚡ Recent Syscall 3-Gram Sequences</span>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                <table class="event-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 130px;">Timestamp</th>
+                      <th>Syscall Sequence (3-Gram)</th>
+                      <th style="width: 90px;">Score</th>
+                      <th style="width: 95px;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="procDetailRecentEventsBody">
+                    <tr>
+                      <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                        Loading recent sequences...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right: Recent Anomaly Feed with Root Cause Explanations -->
+            <div class="chart-card" style="padding: 0; overflow: hidden;">
+              <div class="panel-header" style="padding: 12px 16px;">
+                <div class="panel-title">
+                  <span>🚨 Recent Anomaly Feed & Explanations</span>
+                  <span class="panel-badge" id="procDetailAlertsBadge">0 alerts</span>
+                </div>
+              </div>
+              <div class="alert-feed" id="procDetailAlertsBody" style="max-height: 340px; overflow-y: auto; padding: 12px;">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                  No anomaly alerts for this process.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Section: Safe Monitoring & Terminal Controls -->
+      <section id="section-terminal" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🖥️ Detector Controls & Launch Instructions</span>
+          </div>
+          <div>
+            <span class="panel-badge" style="color: var(--normal-green);">Privilege Separation Protected</span>
+          </div>
+        </div>
+
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            Because kernel eBPF tracepoints require <code style="color: var(--accent-cyan);">CAP_BPF</code> or administrator privileges, the web server runs safely unprivileged and connects directly to the detector's incremental log output. To start or control monitoring, execute the commands below in your host terminal:
+          </p>
+
+          <div class="terminal-box">
+            <div style="color: var(--text-muted); font-size: 11px;"># Option 1: Launch Live eBPF Kernel Collector (Requires sudo in Ubuntu terminal)</div>
+            <div class="command-row">
+              <span class="command-code" id="cmd1">sudo ./ebpf/syscall-detector-live -m baseline_model.dat -o syscall_dataset.csv -q</span>
+              <button class="copy-btn" onclick="copyCommand('cmd1')">📋 Copy</button>
+            </div>
+
+            <div style="color: var(--text-muted); font-size: 11px; margin-top: 14px;"># Option 2: Run Safe Unprivileged Ground-Truth Workload Suite (No sudo required)</div>
+            <div class="command-row">
+              <span class="command-code" id="cmd2">./tools/workload_runner.sh --model baseline_model.dat --output gt_eval_dataset.csv</span>
+              <button class="copy-btn" onclick="copyCommand('cmd2')">📋 Copy</button>
+            </div>
+
+            <div style="color: var(--text-muted); font-size: 11px; margin-top: 14px;"># Option 3: Stop Active Detector Instance</div>
+            <div class="command-row">
+              <span class="command-code" id="cmd3">sudo pkill -SIGINT -f syscall-detector-live</span>
+              <button class="copy-btn" onclick="copyCommand('cmd3')">📋 Copy</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- STAGE 20: Alert Detail & Incident Notes Investigation Modal -->
+  <div class="modal-backdrop" id="modalAlertDetail">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 18px;">🛡️</span>
+          <span style="font-weight: 700; font-size: 16px;" id="modalAlertTitle">Incident Investigation Details</span>
+          <span class="badge-severity severity-high" id="modalSeverityBadge">HIGH</span>
+          <span class="badge-status status-new" id="modalStatusBadge">NEW</span>
+        </div>
+        <button class="modal-close" id="btnCloseModal" title="Close Modal">&times;</button>
+      </div>
+
+      <div class="modal-meta-grid">
+        <div class="modal-meta-item">
+          <div class="meta-label">Alert ID</div>
+          <div class="meta-val" id="modalValAlertId">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Process (PID)</div>
+          <div class="meta-val" id="modalValProcPid">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Severity Level</div>
+          <div class="meta-val" id="modalValSeverity" style="font-weight: 700;">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Anomaly Score</div>
+          <div class="meta-val" id="modalValScore" style="color: var(--anomaly-red); font-weight: 700;">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Source Dataset</div>
+          <div class="meta-val" id="modalValDataset">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Triggered Rule</div>
+          <div class="meta-val" id="modalValRule" style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 11.5px;">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Rule Engine Version</div>
+          <div class="meta-val" id="modalValRuleVersion" style="font-family: var(--font-mono); font-size: 11.5px;">-</div>
+        </div>
+        <div class="modal-meta-item" style="grid-column: 1 / -1;">
+          <div class="meta-label">Security Classification Reason</div>
+          <div class="meta-val" id="modalValSeverityReason" style="color: #fbbf24; font-size: 12px; line-height: 1.4;">-</div>
+        </div>
+        <div class="modal-meta-item" style="grid-column: 1 / -1;">
+          <div class="meta-label">Syscall Sequence (3-Gram)</div>
+          <div class="meta-val seq-code" id="modalValSequence">-</div>
+        </div>
+        <div class="modal-meta-item" style="grid-column: 1 / -1;">
+          <div class="meta-label">Root Cause Explanation</div>
+          <div class="meta-val" id="modalValExplanation" style="color: #93c5fd; font-size: 12.5px;">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Event Timestamp (ns)</div>
+          <div class="meta-val" id="modalValTimestamp">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Created At (UTC)</div>
+          <div class="meta-val" id="modalValCreatedAt">-</div>
+        </div>
+        <div class="modal-meta-item">
+          <div class="meta-label">Last Updated (UTC)</div>
+          <div class="meta-val" id="modalValLastUpdated">-</div>
+        </div>
+      </div>
+
+      <!-- Incident Status Management Control -->
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
+          Incident Status
+        </label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select class="filter-select" id="modalSelectStatus" style="width: 220px; font-weight: 600;">
+            <option value="NEW">NEW</option>
+            <option value="INVESTIGATING">INVESTIGATING</option>
+            <option value="RESOLVED">RESOLVED</option>
+            <option value="FALSE_ALARM">FALSE ALARM</option>
+          </select>
+          <span style="font-size: 11.5px; color: var(--text-muted);">
+            Transitions update audit timestamps and persist across restarts.
+          </span>
+        </div>
+      </div>
+
+      <!-- Investigation Notes Editor -->
+      <div style="margin-bottom: 16px;">
+        <label for="modalNotesText" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
+          Investigation Notes & Triage Audit Log
+        </label>
+        <textarea id="modalNotesText" class="notes-textarea" placeholder="Enter findings, root cause analysis, or remediation notes for this alert..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div id="modalToastMsg" class="toast-msg">Saved successfully</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" id="btnModalCancel">Cancel</button>
+          <button class="btn" id="btnModalSave" style="background: var(--accent-cyan); color: #000; font-weight: 600; border-color: var(--accent-cyan);">💾 Save Changes</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+# Compiled Object Files and Executables
+*.o
+*.so
+*.dylib
+*.exe
+syscall-detector
+ebpf/syscall-detector-live
+ebpf/syscall-trainer
+tools/adfa_benchmark
+tools/adfa_benchmark4
+tools/adfa_benchmark4_sweep
+tools/adfa_model_eval
+tools/analyze_model
+tools/check_sequences
+tools/eval_baseline_model
+tools/gen_model_provenance
+tools/gt_evaluate
+tools/gt_model_compare
+tools/model_compare
+tools/model_coverage
+tools/test_eval_independent
+tools/test_explanation
+tools/test_explanation_integration
+tools/test_gt_evaluation
+tools/test_model_serialization
+tools/test_pid_filtering_and_logging
+tools/test_trainer_detector_compat
+tools/test_train_label_filtering
+tools/train_from_csv
+
+# Python Bytecode and Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Editor and IDE Metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary, Log, and Lock Files
+*.log
+*.tmp
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Runtime Datasets (Generated during testing/evaluation)
+baseline_syscalls.csv
+syscall_dataset.csv
+fresh_syscall_dataset.csv
+gt_eval_dataset.csv
+*.csv.tmp

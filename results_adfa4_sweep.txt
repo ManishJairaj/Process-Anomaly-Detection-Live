@@ -1,0 +1,44 @@
+ADFA-LD 4-Gram Stage 9.9 Threshold Sweep
+Training normal behavior model...
+Unique normal 4-grams: 25915
+Scoring validation traces...
+Scoring attack traces...
+Validation traces: 4372
+Attack traces: 746
+
+VALIDATION THRESHOLD SWEEP (0.01 TO 0.30)
+Threshold  Flagged  Accepted  FPR(%)  TNR(%)  Meets target
+0.01       3114     1258      71.23   28.77   NO
+0.02       2858     1514      65.37   34.63   NO
+0.03       2630     1742      60.16   39.84   NO
+0.04       2466     1906      56.40   43.60   NO
+0.05       2311     2061      52.86   47.14   NO
+0.06       1163     3209      26.60   73.40   NO
+0.07       1057     3315      24.18   75.82   NO
+0.08       991      3381      22.67   77.33   NO
+0.09       920      3452      21.04   78.96   NO
+0.10       864      3508      19.76   80.24   NO
+0.11       811      3561      18.55   81.45   NO
+0.12       770      3602      17.61   82.39   NO
+0.13       745      3627      17.04   82.96   NO
+0.14       722      3650      16.51   83.49   NO
+0.15       693      3679      15.85   84.15   NO
+0.16       672      3700      15.37   84.63   NO
+0.17       661      3711      15.12   84.88   NO
+0.18       643      3729      14.71   85.29   NO
+0.19       625      3747      14.30   85.70   NO
+0.20       603      3769      13.79   86.21   NO
+0.21       595      3777      13.61   86.39   NO
+0.22       573      3799      13.11   86.89   NO
+0.23       549      3823      12.56   87.44   NO
+0.24       528      3844      12.08   87.92   NO
+0.25       510      3862      11.67   88.33   NO
+0.26       492      3880      11.25   88.75   NO
+0.27       477      3895      10.91   89.09   NO
+0.28       451      3921      10.32   89.68   NO
+0.29       433      3939      9.90    90.10   NO
+0.30       417      3955      9.54    90.46   NO
+
+NO QUALIFYING THRESHOLD FOUND.
+No threshold from 0.01 through 0.30 achieves validation FPR <= 5%.
+No attack-selected threshold will be substituted.
